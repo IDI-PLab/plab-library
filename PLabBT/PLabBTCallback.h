@@ -27,11 +27,10 @@ public:
 	}
 };
 
-class PLabBTCallback
+class PLabBTCallback : private PLabBTSerial
 {
 private:
 	FuncListStruct *funcLists;
-	PLabBTSerial transiever;
 	char cmdDivider;
 	void(*emptyCallback)(char* arg);
 	const uint8_t bSize;
@@ -39,12 +38,16 @@ public:
 	PLabBTCallback(uint8_t receivePin, uint8_t transmitPin, char divider = ':', bool inverse_logic = false, uint8_t bufferSize = 50);
 	~PLabBTCallback();
 
-	void begin(long speed);
+	using PLabBTSerial::begin;
 
 	void update();
 
 	void registerCallback(char *command, void(*callback)(char *arg));
 	void registerNoCommandCallback(void(*callback)(char *arg));
+
+	using PLabBTSerial::write;
+	using PLabBTSerial::print;
+	using PLabBTSerial::println;
 };
 
 #endif

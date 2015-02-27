@@ -3,7 +3,7 @@
 
 
 PLabBTCallback::PLabBTCallback(uint8_t receivePin, uint8_t transmitPin, char divider, bool inverse_logic, uint8_t bufferSize) :
-		transiever(receivePin, transmitPin, inverse_logic, bufferSize), bSize (bufferSize)
+		PLabBTSerial(receivePin, transmitPin, inverse_logic, bufferSize), bSize (bufferSize)
 {
 	cmdDivider = divider;
 	funcLists = 0;
@@ -16,18 +16,13 @@ PLabBTCallback::~PLabBTCallback()
 	delete funcLists;
 }
 
-void PLabBTCallback::begin(long speed)
-{
-	transiever.begin(speed);
-}
-
 void PLabBTCallback::update()
 {
-	int available = transiever.available();
-	if (available > 0)
+	int availableCount = available();
+	if (availableCount > 0)
 	{
-		char *msg = new char[available];
-		transiever.read(msg, available);
+		char *msg = new char[availableCount];
+		read(msg, availableCount);
 		char *divided = strchr(msg, cmdDivider);
 		if (divided == 0 && emptyCallback != 0)
 		{
