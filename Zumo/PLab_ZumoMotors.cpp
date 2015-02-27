@@ -62,7 +62,8 @@ PLab_ZumoMotors::PLab_ZumoMotors()
 }
 
 void PLab_ZumoMotors::forward(int _speed, int _length)
-{
+{ 
+  motors.setSpeeds(0, 0);
   float _time = calc_time(_speed,_length);
   motors.setSpeeds(_speed, _speed);
   delay(_time);
@@ -71,6 +72,7 @@ void PLab_ZumoMotors::forward(int _speed, int _length)
 
 void PLab_ZumoMotors::backward(int _speed, int _length)
 {
+  motors.setSpeeds(0, 0);
   float _time = calc_time(_speed,_length);
   motors.setSpeeds(- _speed, - _speed);
   delay(_time);
@@ -79,6 +81,7 @@ void PLab_ZumoMotors::backward(int _speed, int _length)
 
 void PLab_ZumoMotors::turnRight(int _speed, int degrees)
 {  
+  motors.setSpeeds(0, 0);
   float _length = calc_turn_length(_speed);
   _length = _length * degrees / 90.0;
   float _time = calc_time(_speed,_length);
@@ -89,10 +92,35 @@ void PLab_ZumoMotors::turnRight(int _speed, int degrees)
 
 void PLab_ZumoMotors::turnLeft(int _speed, int degrees)
 {  
+  motors.setSpeeds(0, 0);
   float _length = calc_turn_length(_speed);
   _length = _length * degrees / 90.0;
   float _time = calc_time(_speed,_length);
   motors.setSpeeds(- _speed, _speed);
   delay(_time);
   motors.setSpeeds(0, 0);
+}
+
+        // enable/disable flipping of motors
+void PLab_ZumoMotors::flipLeftMotor(boolean flip) {
+    motors.flipLeftMotor(flip);
+}
+    
+
+void PLab_ZumoMotors::flipRightMotor(boolean flip) {
+    motors.flipRightMotor(flip);
+}
+    
+    // set speed for left, right, or both motors
+
+void PLab_ZumoMotors::setLeftSpeed(int speed){
+    motors.setLeftSpeed(speed);
+}
+    
+void PLab_ZumoMotors::setRightSpeed(int speed){
+    motors.setRightSpeed(speed);
+}
+    
+void PLab_ZumoMotors::setSpeeds(int leftSpeed, int rightSpeed){
+    motors.setSpeeds(leftSpeed, rightSpeed);
 }

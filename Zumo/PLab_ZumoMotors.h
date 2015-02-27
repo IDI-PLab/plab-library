@@ -17,7 +17,17 @@ class PLab_ZumoMotors
     void forward(int _speed, int length);
     void backward(int _speed, int _length);
     void turnRight(int _speed, int degrees);
-    void turnLeft(int _speed, int degrees);    
+    void turnLeft(int _speed, int degrees);   
+    
+        // enable/disable flipping of motors
+    void flipLeftMotor(boolean flip);
+    void flipRightMotor(boolean flip);
+    
+    // set speed for left, right, or both motors
+    void setLeftSpeed(int speed);
+    void setRightSpeed(int speed);
+    void setSpeeds(int leftSpeed, int rightSpeed);
+    
   private:
     ZumoMotors motors;
 };
