@@ -1,3 +1,10 @@
+/*
+ * A simple example that show how to do echo functionality using the PLabBTSerial library.
+ * 
+ * Created by Inge Edward Halsaunet, 2015
+ * Released into the public domain
+ */
+
 // Libraries:
 // The SoftwareSerial is used for serial communcation using any two pins on the arduino.
 // If PLabBTSerial is used, it must be included to make your code compile
