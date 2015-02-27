@@ -1,3 +1,17 @@
+/*
+ * PLabBTCallback
+ * Version 0.2, February, 2015
+ * This library for the Arduino Uno simplify serial communication. It uses the
+ * Arduino SoftwareSerial library, gather up messages and pass them on through
+ * callback. Messages may come in the form with a separator, in which case the
+ * library split them up and distributes them to the respective callback
+ * function. This may be beneficial for example for Bluetooth device
+ * communication.
+ *
+ * Created by Inge Edward Halsaunet, 2015
+ * Released into the public domain
+ */
+
 #ifndef PLAB_BT_CALLBACK_H
 #define PLAB_BT_CALLBACK_H
 

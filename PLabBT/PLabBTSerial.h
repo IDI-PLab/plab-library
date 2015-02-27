@@ -6,6 +6,7 @@
  * Allows the user to batch up characters to form an entire line before reading
  *
  * Author Inge Edward Halsaunet
+ * released into the public domain
  */
 
 
