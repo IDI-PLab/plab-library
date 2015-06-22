@@ -49,7 +49,6 @@ void PLabBTLEController::init(long speed)
 	name = 0;
 	role = Role::UNDEFINED;
 	_devices = new PLabBTLEDevice[PLAB_BTLE_MAXDEVICE];
-	for (int i = 0; i < PLAB_BTLE_BSIZE; ++i) buffer[i] = 0;
 }
 bool PLabBTLEController::readBuffer()
 {
@@ -78,10 +77,29 @@ void PLabBTLEController::updateName()
 
 void PLabBTLEController::update()
 {
-	if (state == State::READY) return;
 	unsigned long now = millis();
+	// If the current state is not dependent on overTime, update lastTime
+	if (state == State::INIT ||
+		state == State::INIT_GETROLE ||
+		state == State::INIT_GETDISCNAME ||
+		state == State::INIT_WORKIMM ||
+		state == State::SETTING_ROLE ||
+		state == State::SETTING_NAME_DISCOVERY ||
+		state == State::SETTING_WORKIMM ||
+		state == State::DISCOVERY_STARTING ||
+		state == State::DISCOVERY_RUNNING ||
+		state == State::DISCOVERY_ENDING ||
+		state == State::DISCOVERY_NAME ||
+		state == State::CONNECT_RUNNING ||
+		state == State::DISCONNECTING)
+	{
+		lastTime = now;
+	}
+
+	// READY should not handle anything but lastTime update
+	if (state == State::READY) return;
+
 	bool overTime = (now - lastTime) >= PLAB_BTLE_AT_PAUSE;
-	lastTime = now;
 
 	switch (state)
 	{
@@ -98,7 +116,7 @@ void PLabBTLEController::update()
 			write("AT+ROLE?");
 			engine.prefix = statePrefixes[statePrefixIndex[state]];
 		}
-		else			if (SoftwareSerial::available())
+		else if (SoftwareSerial::available())
 			engine.update(read());
 		break;
 	case State::INIT_GETROLE:
@@ -146,9 +164,20 @@ void PLabBTLEController::update()
 			}
 		}
 		break;
-	case State::READY:
-		break;
 	case State::SETTING_ROLE:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				if (r == '0') role = Role.PERIPHERAL;
+				else if (r == '1') role = Role.CENTRAL;
+				else role = Role.UNDEFINED;
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+		}
 		break;
 	case State::SETTING_NAME:
 		if (overTime)
@@ -159,6 +188,208 @@ void PLabBTLEController::update()
 		}
 		else if (SoftwareSerial::available())
 			engine.update(read());
+		break;
+	case State::SETTING_NAME_DISCOVERY:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				discoverNames = r == '1';
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+
+			}
+		}
+		break;
+	case State::SETTING_WORKIMM:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				workImmediately = r == '0';
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+		}
+		break;
+	case State::DISCOVERY_STARTING:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				state = r == 'S' ? State::DISCOVERY_RUNNING : State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+		}
+		break;
+	case State::DISCOVERY_RUNNING:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				// Assuming non-hex numbering of devices
+				if (r == 'C')
+				{
+					state = State::DISCOVERY_ENDING;
+					engine.prefix = statePrefixes[statePrefixIndex[state]];
+					enging.update(r);
+				}
+				else
+				{
+					// Assuming less than 10 discoverable devices
+					discovering = r - '0';
+					discovering = discovering < PLAB_BTLE_MAXDEVICE ? discovering : -1;
+					if (discovering >= 0)
+					{
+						_devices[discovering].id = discovering;
+						delete[] _devices[discovering].name;
+						_devices[discovering].name = 0;
+					}
+					state = State::DISCOVERY_ADDRESS;
+					engine.prefix = statePrefixes[statePrefixIndex[state]];
+				}
+			}
+		}
+		break;
+	case State::DISCOVERY_ENDING:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				// This should be an 'E', but since we do not have any fail state...
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+		}
+		break;
+	case State::DISCOVERY_NAME:
+		if (SoftwareSerial::available())
+		{
+			char c = read();
+			if (engine.update(c) > 0)
+			{
+				// Documentation says we will receive \r\n at the end of name
+				if (c == '\n')
+				{
+					state = State::DISCOVERY_RUNNING;
+					engine.prefix = statePrefixes[statePrefixIndex[state]];
+				}
+				else if (c == '\r')
+				{
+					int nameChars = engine.update(0);
+					if (discovering > 0) {
+						_devices[discovering].name = new char[nameChars + 1];
+						for (int i = 0; i <= nameChars; i++)
+							_devices[discovering].name[i] = engine.getMessage()[i];
+					}
+				}
+			}
+		}
+		break;
+	case State::DISCOVERY_ADDRESS:
+		// Ending on either timeout or new message
+		if (overTime)
+		{
+			int addrCount = engine.update(0);
+			if (discovering >= 0) {
+				delete[] _devices[discovering].address;
+				_devices[discovering].address = new char[addrCount + 1];
+				for (int i = 0; i <= addrCount; ++i)
+					_devices[discovering].address[i] = engine.getMessage()[i];
+			}
+			state = discoverNames ? State::DISCOVERY_NAME : State::DISCOVERY_RUNNING;
+			engine.prefix = statePrefixes[statePrefixIndex[state]];
+		}
+		else if (SoftwareSerial::available())
+		{
+			// We are dependent on no 'O' in prefix or address. Should be OK.
+			char c = read();
+			if (c == 'O')
+			{
+				int addrCount = engine.update(0);
+				if (discovering >= 0) {
+					delete[] _devices[discovering].address;
+					_devices[discovering].address = new char[addrCount + 1];
+					for (int i = 0; i <= addrCount; ++i)
+						_devices[discovering].address[i] = engine.getMessage()[i];
+				}
+				state = discoverNames ? State::DISCOVERY_NAME : State::DISCOVERY_RUNNING;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+			engine.update(c);
+		}
+		break;
+	case State::CONNECT_RUNNING:
+		if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				// Normal connect:
+				// Valid: 0-5. Invalid: E/F
+				// Connect last:
+				// Valid: L, Invalid: E/F/N
+				connected = (r >= '0' && r <= '5') || r == 'L';
+				connFail = r == 'E' || r == 'F' || r == 'N';
+				discoverNames = r == '1';
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+			}
+		}
+		break;
+	case State::DISCONNECTING:
+		connected = workImmediately;
+		state = State::READY;
+		break;
+	case State::RESET_IN_PROGRESS:
+		if (overTime)
+		{
+			while (engine.update(' ') <= 0) {}
+			engine.update(0);
+			state = State::READY;
+			engine.prefix = statePrefixes[statePrefixIndex[state]];
+		}
+		else if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				state = State::READY;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+				engine.update(r);
+			}
+		}
+		break;
+	case State::FACTORY_RESET_IN_PROGRESS:
+		if (overTime)
+		{
+			while (engine.update(' ') <= 0) {}
+			engine.update(0);
+			state = State::INIT;
+			engine.prefix = statePrefixes[statePrefixIndex[state]];
+		}
+		else if (SoftwareSerial::available())
+		{
+			if (engine.update(read()) > 0)
+			{
+				engine.update(0);
+				char r = engine.getMessage()[0];
+				state = State::INIT;
+				engine.prefix = statePrefixes[statePrefixIndex[state]];
+				engine.update(r);
+			}
+		}
 		break;
 	}
 }
@@ -227,10 +458,17 @@ void PLabBTLEController::setWorkingImmediately(bool wi)
 void PLabBTLEController::discoverDevices()
 {
 	if (!isReady() || connected || role != Role::CENTRAL || workImmediately) return;
-	state = State::DISCOVERY_RUNNING;
+	state = State::DISCOVERY_STARTING;
 	write("AT+DISC?");
 	engine.prefix = statePrefixes[statePrefixIndex[state]];
-	for (int i = 0; i < PLAB_BTLE_MAXDEVICE; ++i) _devices[i].id = -1;
+	for (int i = 0; i < PLAB_BTLE_MAXDEVICE; ++i)
+	{
+		_devices[i].id = -1;
+		delete[] _devices[i].name;
+		_devices[i].name = 0;
+		delete[] _devices[i].address;
+		_devices[i].address = 0;
+	}
 }
 bool PLabBTLEController::isDiscoveringDevices() const { return state == State::DISCOVERY_RUNNING; }
 int PLabBTLEController::devices() const

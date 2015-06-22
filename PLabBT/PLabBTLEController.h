@@ -112,18 +112,20 @@ private:
 		INIT = 0, INIT_GETNAME, INIT_GETROLE, INIT_GETDISCNAME, INIT_WORKIMM,
 		READY,
 		SETTING_ROLE, SETTING_NAME, SETTING_NAME_DISCOVERY, SETTING_WORKIMM,
-		DISCOVERY_RUNNING, CONNECT_RUNNING, DISCONNECTING,
+		DISCOVERY_STARTING, DISCOVERY_RUNNING, DISCOVERY_ENDING, DISCOVERY_NAME, DISCOVERY_ADDRESS,
+		CONNECT_RUNNING, DISCONNECTING,
 		RESET_IN_PROGRESS, FACTORY_RESET_IN_PROGRESS
 	};
 	const char *statePrefixes = {
 		0, "OK+NAME:", "OK+Get:", "OK+Set:", "OK+DIS", "OK+RESET", "OK+RENEW",
-		"OK+CONN"
+		"OK+CONN", "OK+DISC", "C", ":"
 	};
 	const int statePrefixIndex[] = {
 		0, 1, 2, 2, 2,
 		0,
 		3, 3, 3, 3,
-		4, 7, 0,
+		8, 4, 9, 1, 10,
+		7, 0,
 		5, 6
 	};
 
@@ -137,6 +139,7 @@ private:
 	PLabBTLEDevice *_devices;
 	bool connected, discoverNames, workImmediately, connFail = false;;
 	int connectedTo = -1;
+	int discovering = -1;
 	Role role = Role::UNDEFINED;
 	// Defaultconstructor should never be used
 	PLabBTLEController() : SoftwareSerial(0, 1){};
