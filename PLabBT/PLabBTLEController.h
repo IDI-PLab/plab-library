@@ -8,6 +8,7 @@
  * Created by Inge Edward Halsaunet, 2015
  * Released into the public domain
  */
+#include <Arduino.h>
 
 #ifndef PLAB_BTLE_DEVICE_H
 #define PLAB_BTLE_DEVICE_H
@@ -39,9 +40,9 @@ public:
 		delete[] name;
 		delete[] address;
 	}
-	int id() const;
-	const char *name() const;
-	const char *address() const;
+	int getId() const;
+	const char *getName() const;
+	const char *getAddress() const;
 };
 
 class PLabBTLEStateEngine
@@ -50,7 +51,7 @@ private:
 	enum State {
 		START, RECV_PREFIX, RECV_MSG
 	};
-	State state = State::Start;
+	PLabBTLEStateEngine::State state = START;
 	char buffer[PLAB_BTLE_BSIZE] = { 0 };
 	int bLoc = 0;
 	int pLoc = 0;
@@ -63,12 +64,12 @@ public:
 	int update(char c) {
 		switch (state)
 		{
-		case State::START:
+		case START:
 			bLoc = 0;
 			buffer[bLoc] = 0;
 			if (prefix == 0)
 			{
-				state = State::RECV_MSG;
+				state = RECV_MSG;
 			}
 			else
 			{
@@ -76,10 +77,10 @@ public:
 				return prefix[pLoc++] == c ? 0 : -1;
 			}
 			break;
-		case State::RECV_PREFIX:
+		case RECV_PREFIX:
 			if (prefix[pLoc] == 0)
 			{
-				state = State::RECV_MSG;
+				state = RECV_MSG;
 			}
 			else
 			{
@@ -90,7 +91,7 @@ public:
 		// If we get here, we are in state RECV_MSG
 		if (c == 0)
 		{
-			state = State::Start;
+			state = START;
 			return bLoc;
 		}
 		if (bLoc >= (PLAB_BTLE_BSIZE - 1))
@@ -107,21 +108,23 @@ public:
 
 class PLabBTLEController : public SoftwareSerial
 {
+public:
+	enum Role { UNDEFINED = 0, PERIPHERAL = '0', CENTRAL = '1' };
 private:
 	enum State {
-		INIT = 0, INIT_GETNAME, INIT_GETROLE, INIT_GETDISCNAME, INIT_WORKIMM,
+		PRE_INIT = 0, INIT, INIT_GETNAME, INIT_GETROLE, INIT_GETDISCNAME, INIT_WORKIMM,
 		READY,
 		SETTING_ROLE, SETTING_NAME, SETTING_NAME_DISCOVERY, SETTING_WORKIMM,
 		DISCOVERY_STARTING, DISCOVERY_RUNNING, DISCOVERY_ENDING, DISCOVERY_NAME, DISCOVERY_ADDRESS,
 		CONNECT_RUNNING, DISCONNECTING,
 		RESET_IN_PROGRESS, FACTORY_RESET_IN_PROGRESS
 	};
-	const char *statePrefixes = {
-		0, "OK+NAME:", "OK+Get:", "OK+Set:", "OK+DIS", "OK+RESET", "OK+RENEW",
-		"OK+CONN", "OK+DISC", "C", ":"
+	char *statePrefixes[11] = {
+		0, "OK+NAME:", "OK+Get:", "OK+Set:", "OK+DIS", "OK+RESET",
+		"OK+RENEW", "OK+CONN", "OK+DISC", "C", ":"
 	};
-	const int statePrefixIndex[] = {
-		0, 1, 2, 2, 2,
+	const int statePrefixIndex[20] = {
+		0, 0, 1, 2, 2, 2,
 		0,
 		3, 3, 3, 3,
 		8, 4, 9, 1, 10,
@@ -131,7 +134,7 @@ private:
 
 	PLabBTLEStateEngine engine;
 
-	state = State::INIT;
+	PLabBTLEController::State state = INIT;
 
 	unsigned long lastTime;
 
@@ -140,21 +143,19 @@ private:
 	bool connected, discoverNames, workImmediately, connFail = false;;
 	int connectedTo = -1;
 	int discovering = -1;
-	Role role = Role::UNDEFINED;
+	PLabBTLEController::Role role = UNDEFINED;
 	// Defaultconstructor should never be used
 	PLabBTLEController() : SoftwareSerial(0, 1){};
 	void init(long speed);
 	void updateName();
 public:
 
-	enum Role { UNDEFINED = 0, PERIPHERAL = '0', CENTRAL = '1' };
-
-	PLabBTLEController(int rx, int tx, long speed = 9600) :
+	PLabBTLEController(int rx, int tx) :
 		SoftwareSerial(rx, tx) {
-		init(speed);
+		state = PRE_INIT;
 	}
 	PLabBTLEController(const PLabBTLEController &other) = delete;
-	~PLabBTLEController() : ~SofwareSerial() {
+	~PLabBTLEController() {
 		delete[] name;
 		delete[] _devices;
 	}
@@ -164,7 +165,7 @@ public:
 	void update();
 	bool isReady() const;
 
-	void setName(char *name) const;
+	void setName(char *name);
 	const char* getName() const;
 
 	Role getRole() const;
@@ -192,14 +193,24 @@ public:
 
 	virtual int available()
 	{
-		if (state == State::READY)
+		if (state == READY)
 		{
-			return SofwareSerial::available();
+			return SoftwareSerial::available();
 		}
 		return 0;
 	}
 
-	void reset() const;
+	void reset();
 	void factoryReset();
-}
+
+	void begin(long speed) {init(speed);}
+#ifdef PLAB_DEBUG
+	virtual int read()
+	{
+		int c = SoftwareSerial::read();
+		Serial.print((char)c);
+		return c;
+	}
+#endif
+};
 #endif
