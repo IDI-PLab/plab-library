@@ -2,20 +2,33 @@
  * PLabBTLEController
  * Version 0.1, June, 2015
  * This library for the Arduino Uno simplify network communication for
- * Bluetooth LE HM-10 and HM11 based devices. This library extends
+ * Bluetooth LE HM-10 and HM-11 based devices. This library extends
  * the SoftwareSerial library, and wrap a controller around AT commands.
  *
  * Created by Inge Edward Halsaunet, 2015
  * Released into the public domain
  */
+// !--- UNCOMMENT TO RECEIVE DEBUG OUTPUT
+//#define PLAB_DEBUG
+
 #include <Arduino.h>
 
 #ifndef PLAB_BTLE_DEVICE_H
 #define PLAB_BTLE_DEVICE_H
-
-// Pause to assess end of AT reply when no clear distinction is inferred
-#ifndef PLAB_BTLE_AT_PAUSE
-#define PLAB_BTLE_AT_PAUSE 10
+// Pause length before communications can start
+#ifndef PLAB_BTLE_START_PAUSE
+#define PLAB_BTLE_START_PAUSE 3000
+#endif
+#ifndef PLAB_TIMEOUT
+#define PLAB_TIMEOUT 1000
+#endif
+// Long timeout. Used during discovery to cancel scans
+#ifndef PLAB_LONG_TIMEOUT
+#define PLAB_LONG_TIMEOUT 10000
+#endif
+// After factory reset, allow for a short delay
+#ifndef PLAB_FACT_RESET_PAUSE
+#define PLAB_FACT_RESET_PAUSE 250
 #endif
 // Maximal number of devices a discovery can find
 #ifndef PLAB_BTLE_MAXDEVICE
@@ -28,6 +41,9 @@
 
 #include <SoftwareSerial.h>
 
+/*
+ * PLabBTLEDevice represents a discovered device.
+ */
 class PLabBTLEDevice {
 	friend class PLabBTLEController;
 private:
@@ -37,80 +53,54 @@ private:
 public:
 	~PLabBTLEDevice()
 	{
-		delete[] name;
-		delete[] address;
+		// It is not this object that neither creates nor destroys any of its own content
 	}
-	int getId() const;
-	const char *getName() const;
-	const char *getAddress() const;
+	// Id is controller specific identifier
+	int getId() const { return id; }
+	// Name of device. May be null
+	const char *getName() const { return name; }
+	// Address of device as string. Should not be null
+	const char *getAddress() const { return address; }
 };
 
-class PLabBTLEStateEngine
-{
-private:
-	enum State {
-		START, RECV_PREFIX, RECV_MSG
-	};
-	PLabBTLEStateEngine::State state = START;
-	char buffer[PLAB_BTLE_BSIZE] = { 0 };
-	int bLoc = 0;
-	int pLoc = 0;
-public:
-	char *prefix = 0;
-	// -1 : ERROR
-	//  0 : Receiving prefix
-	//  1 : Receiving message
-	// On end-of-message recive (0), return length of message
-	int update(char c) {
-		switch (state)
-		{
-		case START:
-			bLoc = 0;
-			buffer[bLoc] = 0;
-			if (prefix == 0)
-			{
-				state = RECV_MSG;
-			}
-			else
-			{
-				pLoc = 0;
-				return prefix[pLoc++] == c ? 0 : -1;
-			}
-			break;
-		case RECV_PREFIX:
-			if (prefix[pLoc] == 0)
-			{
-				state = RECV_MSG;
-			}
-			else
-			{
-				return prefix[pLoc++] == c ? 0 : -1;
-			}
-			break;
-		}
-		// If we get here, we are in state RECV_MSG
-		if (c == 0)
-		{
-			state = START;
-			return bLoc;
-		}
-		if (bLoc >= (PLAB_BTLE_BSIZE - 1))
-		{
-			buffer[PLAB_BTLE_BSIZE - 1] = 0;
-			return -1;
-		}
-		buffer[bLoc++] = c;
-		buffer[bLoc] = 0;
-		return 1;
-	}
-	char *getMessage() { return buffer; }
-};
 
+/*
+ * PLabBTLEController controls a BTLE unit through AT commands. Extends SoftwareSerial.
+ * After changing a setting, it might be neccesary to run a device reset to see the information for the outside world.
+ */
 class PLabBTLEController : public SoftwareSerial
 {
 public:
+	// A Role is a representation of the role a BTLE units takes
 	enum Role { UNDEFINED = 0, PERIPHERAL = '0', CENTRAL = '1' };
 private:
+
+	// Implementation detail. Helper to keep track of internal state of message
+	class PLabBTLEStateEngine
+	{
+	private:
+		enum State {
+			START, RECV_PREFIX, RECV_MSG
+		};
+		PLabBTLEStateEngine::State state = START;
+		char buffer[PLAB_BTLE_BSIZE] = { 0 };
+		int bLoc = 0;
+		int pLoc = 0;
+	public:
+		char *prefix = 0;
+		// -1 : ERROR
+		//  0 : Receiving prefix
+		//  1 : Receiving message
+		// On end-of-message recive (0), return length of message
+		int update(char c);
+		char *getMessage();
+		bool prefixRead();
+#ifdef PLAB_DEBUG
+		void printState();
+#endif
+	};
+
+	// Main states the controller may be in. Each AT command issued causes minimum 1 state change.
 	enum State {
 		PRE_INIT = 0, INIT, INIT_GETNAME, INIT_GETROLE, INIT_GETDISCNAME, INIT_WORKIMM,
 		READY,
@@ -119,10 +109,12 @@ private:
 		CONNECT_RUNNING, DISCONNECTING,
 		RESET_IN_PROGRESS, FACTORY_RESET_IN_PROGRESS
 	};
+	// Replies from states are often prefixed by similar string.
 	char *statePrefixes[11] = {
 		0, "OK+NAME:", "OK+Get:", "OK+Set:", "OK+DIS", "OK+RESET",
 		"OK+RENEW", "OK+CONN", "OK+DISC", "C", ":"
 	};
+	// Each state has a prefix index
 	const int statePrefixIndex[20] = {
 		0, 0, 1, 2, 2, 2,
 		0,
@@ -136,33 +128,51 @@ private:
 
 	PLabBTLEController::State state = INIT;
 
-	unsigned long lastTime;
+	// When setting name, we know when reply has ended by keeping track of length of name
+	int nameLength = 0;
+	int nameRcvd = 0;
 
+	// When the last AT command was issued
+	unsigned long commandIssued = 0;
+	// If device has started responding to last command
+	bool replyStarted = false;
+
+	// Name of this device
 	char *name = 0;
+	// Discovered devices
 	PLabBTLEDevice *_devices;
-	bool connected, discoverNames, workImmediately, connFail = false;;
-	int connectedTo = -1;
+	// If we are connected, if we discover devices names, if we start working immediately, if a connection attempt has failed
+	bool connected, discoverNames, workImmediately, connFail = false;
+	// During discovery, keep track of which item we discover
 	int discovering = -1;
+	// Which role we have
 	PLabBTLEController::Role role = UNDEFINED;
-	// Defaultconstructor should never be used
-	PLabBTLEController() : SoftwareSerial(0, 1){};
+	// Initialisation
 	void init(long speed);
+	// Implementation detail when reading/setting name
 	void updateName();
 public:
+	// No default constructor or copy constructor
+	PLabBTLEController() = delete;
+	PLabBTLEController(const PLabBTLEController &other) = delete;
 
+	// Set up controller to pins
 	PLabBTLEController(int rx, int tx) :
 		SoftwareSerial(rx, tx) {
 		state = PRE_INIT;
 	}
-	PLabBTLEController(const PLabBTLEController &other) = delete;
 	~PLabBTLEController() {
 		delete[] name;
 		delete[] _devices;
 	}
 
+	// Element access -> discovered device
 	const PLabBTLEDevice &operator[](const int &index) const;
 
+	// Update data structures
 	void update();
+
+	// in ready state
 	bool isReady() const;
 
 	void setName(char *name);
@@ -179,19 +189,32 @@ public:
 	bool isWorkingImmediately() const;
 	void setWorkingImmediately(bool wi);
 
+	// Start device discovery
 	void discoverDevices();
+	// In discover device state
 	bool isDiscoveringDevices() const;
+	// How many devices are discovered
 	int devices() const;
+	// Delete the list of discovered devices
+	void clearDiscoveredDevices();
 
+	// Connect to device by id. Require 0 <= id < devices(). May fail if discover devices is not recently run
 	void connectDevice(int id);
+	// Connect to a device. Will primarily use address to connect, but can fallback to id
 	void connectDevice(const PLabBTLEDevice &device);
+	// Connect to a device by address
+	void connectDevice(const char *address);
+	// Reconnect to the last device where a successful connection was made
 	void connectLastDevice();
+
+	// Connection state checks
 	bool connectionFailed() const;
 	bool isConnecting() const;
 	bool isConnected() const;
 	void disconnect();
 
-	virtual int available()
+	// Any available information to report?
+	int available()
 	{
 		if (state == READY)
 		{
@@ -200,16 +223,37 @@ public:
 		return 0;
 	}
 
+	// Reset device
 	void reset();
 	void factoryReset();
 
-	void begin(long speed) {init(speed);}
+	// Start communication with the device
+	void begin(long speed) { init(speed); }
 #ifdef PLAB_DEBUG
-	virtual int read()
+	// !--- DEBUGGING OUTPUT
+	int read()
 	{
 		int c = SoftwareSerial::read();
-		Serial.print((char)c);
+		if (c < 0) {
+			Serial.println("R: NO CHAR");
+		} else {
+			Serial.print("R:");
+			Serial.println((char)c);
+		}
 		return c;
+	}
+	using SoftwareSerial::write;
+	size_t write(uint8_t c)
+	{
+		Serial.print("W:");
+		Serial.println((char)c);
+		return SoftwareSerial::write(c);
+	}
+	void printDebug()
+	{
+		engine.printState();
+		Serial.print("engine message:");
+		Serial.println(engine.getMessage());
 	}
 #endif
 };
