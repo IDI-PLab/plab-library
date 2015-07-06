@@ -7,7 +7,7 @@
   Kretsen:
     1 x HC-SR04 (ultralyd sensor)
   Oppkobling vises på wiki:
-  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-S04
+  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-SR04
   
   Bibliotek
     - NewPing (Nedlasting: https://code.google.com/p/arduino-new-ping/downloads/list )
@@ -19,7 +19,7 @@
   Circuit
     1 x HC-SR04 (ultrasonic sensor)
   How to connect circuit can be seen here:
-  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-S04
+  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-SR04
   
   Library
     - NewPing (Download: https://code.google.com/p/arduino-new-ping/downloads/list )

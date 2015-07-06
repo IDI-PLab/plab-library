@@ -10,7 +10,7 @@
     1 x 220 ohm motstand
     1 x buzzer
   Oppkobling vises på wiki:
-  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-S04
+  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-SR04
   
   Bibliotek
     - NewPing (Nedlasting: https://code.google.com/p/arduino-new-ping/downloads/list )
@@ -24,7 +24,7 @@
     1 x 220 ohm resistor
     1 x buzzer
   How to connect circuit can be seen here:
-  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-S04
+  https://www.ntnu.no/wiki/display/plab/3.+Ultralyd+-+HC-SR04
   
   Library
     - NewPing (Download: https://code.google.com/p/arduino-new-ping/downloads/list )
