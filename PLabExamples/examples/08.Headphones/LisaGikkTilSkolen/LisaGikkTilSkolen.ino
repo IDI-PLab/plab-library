@@ -42,7 +42,7 @@
 // Define a special note, 'R', to represent a rest
 #define  R     0
 
-int speakerOut = 8;
+const int speakerOut = 8; // The pin we connect the resistor and headphones to
 
 // MELODY and TIMING  =======================================
 //  melody[] is an array of notes, accompanied by beats[],
