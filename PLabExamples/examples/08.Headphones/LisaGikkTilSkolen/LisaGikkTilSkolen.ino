@@ -61,7 +61,7 @@ void setup() {
 }
 
 void loop() {
- // Set up a counter to pull from melody[] and beats[]
+  // Set up a counter to pull from melody[] and beats[]
   for (int i=0; i<MAX_COUNT; i++) {
     frequency = melody[i];
     beat = beats[i];
