@@ -1,6 +1,6 @@
 
 /*
- * CodeDump
+ * SoundTest
  * 
  * Mottar signal fra en fjernkontroll og spiller A4 eller A5 hvis knappen var 1 eller 2.
  * 
