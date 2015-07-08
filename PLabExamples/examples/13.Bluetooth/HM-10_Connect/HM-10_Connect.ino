@@ -1,7 +1,14 @@
 /*
+ * HM-10_Connect
+ * 
  * An example that show how to use the PLabBTLEController library to connect two BTLE devices.
- * After a connection has been made, the devices are disconnected and configured to always reconnect when in proximity.
  * The devices are internally controlled by AT commands. Devices known to work with this library is HM-10 and HM-11.
+ * 
+ * Circuit:
+ *   1 x HM-10 Bluetooth LE module
+ *   
+ * 
+ * https://www.ntnu.no/wiki/pages/viewpage.action?pageId=78024129
  * 
  * Created by Inge Edward Halsaunet, 2015
  * Released into the public domain
@@ -58,8 +65,6 @@ void setup() {
   delay(500);
   controller.discoverDevices();
 }
-
-
 
 void loop() {
   // Allways allow controller to update its data structures.
@@ -152,46 +157,6 @@ void loop() {
           Serial.println("Connecting to device");
           controller.connectDevice(controller[v]);
           reprintScreen = true;
-          
-          // Wait for controller to be ready to receive commands.
-          while (!controller.isReady()) {
-            controller.update();
-          }
-
-          Serial.println("Give some time before continuing");
-          delay(1000);
-
-          controller.update();
-
-          // Disconnect
-          Serial.println("Disconnecting from device");
-          controller.disconnect();
-
-          Serial.println("Give some time before continuing");
-          delay(1000);
-          
-          // Wait for controller to be ready to receive commands.
-          while (!controller.isReady()) {
-            controller.update();
-          }
-
-
-          // Set controller to start working immediately. This will cause device to reconnect whenever previous connected device is nearby
-          Serial.println("Set up controller to work immediately");
-          controller.setWorkingImmediately(true);
-
-
-          // Wait for controller to be ready to receive commands.
-          while (!controller.isReady()) {
-            controller.update();
-          }
-          
-          // Reset device
-          Serial.println("Reset device. This should cause it to immediately reconnect.");
-          controller.reset();
-          
-          Serial.println("This device will now allways reconnect when other device is close by");
-          
         } else {
           // It was not a device identifier, and we should send the input to the bluetooth device
           controller.write(inp);

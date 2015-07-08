@@ -2,6 +2,12 @@
  * An example that show how to use the PLabBTLEController library to control functionality of BTLE units.
  * The devices are internally controlled by AT commands. Devices known to work with this library is HM-10 and HM-11.
  * 
+ * Circuit:
+ *   1 x HM-10 Bluetooth LE module
+ *   
+ * 
+ * https://www.ntnu.no/wiki/pages/viewpage.action?pageId=78024129
+ * 
  * Created by Inge Edward Halsaunet, 2015
  * Released into the public domain
  */

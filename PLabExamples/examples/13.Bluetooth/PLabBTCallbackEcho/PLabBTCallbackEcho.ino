@@ -1,5 +1,12 @@
 /*
+ * PLabBTCallbackEcho
+ * 
  * A simple example that show how to do echo functionality using the PLabBTCallback library.
+ * 
+ * Circuit:
+ *   1 x Bluetooth or Bluetooth LE module with UART interface
+ * 
+ * https://www.ntnu.no/wiki/pages/viewpage.action?pageId=78024129
  * 
  * Created by Inge Edward Halsaunet, 2015
  * Released into the public domain
