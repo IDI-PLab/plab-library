@@ -1,5 +1,8 @@
 // Example testing sketch for various DHT humidity/temperature sensors
 // Written by ladyada, public domain
+// 
+// Modified for PLab course with type selection 2015
+// See PLab wiki: https://www.ntnu.no/wiki/display/plab/8.+DHT11+Temperatur-+og+luftfuktighetssensor
 
 #include <DHT.h>
 
@@ -25,7 +28,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("DHTxx test!");
+  Serial.println("DHT11 test!");
 
   dht.begin();
 }
