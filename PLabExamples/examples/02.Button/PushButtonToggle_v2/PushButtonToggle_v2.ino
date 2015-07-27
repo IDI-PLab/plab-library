@@ -12,6 +12,8 @@
  *   1 x 10k ohm motstand
  *   1 x 220 ohm motstand
  *   1 x LED
+ * Oppkoblingen vises her:
+ * https://www.ntnu.no/wiki/display/plab/1.+Generelt+om+sensorer+og+trykknapper
  *   
  * 
  * Turns a LED on while a button is pressed. The button is debounced.
@@ -25,6 +27,8 @@
  *   1 x 10k ohm resistor
  *   1 x 220 ohm resistor
  *   1 x LED
+ * How to connect circuit can be seen here:
+ * https://www.ntnu.no/wiki/display/plab/1.+Generelt+om+sensorer+og+trykknapper
  */
  
 #include <PLab_PushButton.h>

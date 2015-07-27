@@ -6,6 +6,8 @@
  * Kretsen:
  *   1 x Trykknapp
  *   1 x 10k ohm motstand
+ * Oppkoblingen vises her:
+ * https://www.ntnu.no/wiki/display/plab/1.+Generelt+om+sensorer+og+trykknapper
  *   
  * 
  * Sees when a button is pushed, and sends a serial message when this occurs.
@@ -13,6 +15,8 @@
  * Circuit:
  *   1 x push button
  *   1 x 10k ohm resistor
+ * How to connect circuit can be seen here:
+ * https://www.ntnu.no/wiki/display/plab/1.+Generelt+om+sensorer+og+trykknapper
  */
  
 // constants won't change. They're used here to 

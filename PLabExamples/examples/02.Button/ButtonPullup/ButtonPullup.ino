@@ -12,6 +12,8 @@
  
  * Note: on most Arduinos there is already an LED on the board
  attached to pin 13.
+ How to connect circuit can be seen here:
+ https://www.ntnu.no/wiki/display/plab/1.+Generelt+om+sensorer+og+trykknapper
  
  
  created 2005
