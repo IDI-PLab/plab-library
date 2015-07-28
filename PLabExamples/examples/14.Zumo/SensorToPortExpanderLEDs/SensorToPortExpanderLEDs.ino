@@ -10,6 +10,7 @@
  *   1 x Zumo med sensor array
  *   6 x LED
  *   6 x 220 ohm motstand
+ *   1 x 10 k ohm motstand
  * Oppkobling:
  * https://www.ntnu.no/wiki/display/plab/9.+Port+Expander
  *
@@ -23,6 +24,7 @@
  *   1 x Zumo with reflectance senosr array
  *   6 x LED
  *   6 x 220 ohm resistor
+ *   1 x 10 k ohm resistor
  * Connecting the circuit:
  * https://www.ntnu.no/wiki/display/plab/9.+Port+Expander
  */
