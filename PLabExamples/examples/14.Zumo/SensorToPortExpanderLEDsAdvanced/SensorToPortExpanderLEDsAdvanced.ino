@@ -1,5 +1,5 @@
 /*
- * SensorToPortExpanderLEDs
+ * SensorToPortExpanderLEDsAdvanced
  *
  * Leser av verdiene fra Zumos refleksjonssensorer, tolker signalet
  * som et analogt signal og lyser en LED per sensor på en port
@@ -44,34 +44,52 @@ Adafruit_MCP23008 mcp;  // Port exander proxy
 ZumoReflectanceSensorArray sensors; // Sensor array proxy
 const unsigned int maxReading = 2000;  // Maximum value that can be read from sensors (defined in library)
 
-unsigned int readings[8];  // Will hold the read sensor values. Must be at least 6 big for reading. Using the same array for writing, it must be at least 8 big
+unsigned int readings[6];
+const int outPorts[] = { 5, 4, 3, 2, 1, 0 }; // Outputs are written in opposite order than they are read to show difference from SensorToPortExpanderLEDs example.
+uint8_t outMask;
 
 
 /**
- * Helper function that initialize a MCP23008 port expander with the given address, with all IO ports set as outputs.
- *   peAddr  : Address of the port expander
- *   portExp : The port expander. Passed by reference, no copies are made of the proxy object.
+ * Helper function that initialize a MCP23008 port expander with the given address, with the IO ports that should be used for analog write as outputs.
+ *   peAddr      : Address of the port expander
+ *   outputPorts : The ports that are to be used as outputs
+ *   outputs     : Number of ports used.
+ *   portExp     : The port expander. Passed by reference, no copies are made of the proxy object.
+ * 
+ *   returns     : Bitmask for the used ports
  */
-void portExpander_beginAnalog(int peAddr, Adafruit_MCP23008 &portExp) {
+uint8_t portExpander_beginAnalog(int peAddr, const int *outputPorts, int outputs, Adafruit_MCP23008 &portExp) {
+  // Init mask
+  uint8_t mask = 0;
   // Start communication with port expander
   portExp.begin(peAddr);
-  // Set all pins as outputs
-  for (int i = 0; i < 8; ++i) {
-    portExp.pinMode(i, OUTPUT);
+  // Set given pins as outputs
+  for (int i = 0; i < outputs; ++i) {
+    mask |= 0x1 << outputPorts[i]; // Binary or the mask with 1 at the location of this port
+    portExp.pinMode(outputPorts[i], OUTPUT);
   }
+  
+  return mask;
 }
 
 /**
  * Helper function that simulate 1 cycle of PWM written analog output.
- *   values  : Array of values. MUST be AT LEAST 8 elements in array. Values are expected in range 0 - 100
- *   portExp : The port expander. Passed by reference, no copies are made of the proxy object.
+ *   values      : Array of values. Size of array MUST be AT LEAST as big as number of ports used. Values are expected in range 0 - 100
+ *   outputPorts : The ports that are used as outputs
+ *   outputs     : Number of ports used.
+ *   outputMask  : The bit mask for the output as returned by portExpander_beginAnalog()
+ *   portExp     : The port expander. Passed by reference, no copies are made of the proxy object.
  */
-void portExpander_analogWrite(unsigned int *values, Adafruit_MCP23008 &portExp) {
+void portExpander_analogWrite(unsigned int *values, const int *outputPorts, int outputs, uint8_t outputMask, Adafruit_MCP23008 &portExp) {
   
   // Expected value range: 0 - MAX_VALUE
   const int MAX_VALUE = 100;
   // Step size: Determines resolution. Too high resolution (low step size) may result in flashing lights
   const int STEP_SIZE = 10;
+  
+  // Read values that that are currently on the output, and mask them with the opposite of the output mask.
+  // This will be used with all writes.
+  uint8_t prevVals = portExp.readGPIO() & ~outputMask;
   
   for (unsigned int i = 0; i <= MAX_VALUE; i += STEP_SIZE) {
     // To speed up i2c communication, we only send one update signal
@@ -90,26 +108,25 @@ void portExpander_analogWrite(unsigned int *values, Adafruit_MCP23008 &portExp) 
     
     // we can now loop through all readings to update the byte
     // representation of our outputs
-    for (int s = 0; s < 8; ++s) {
+    for (int s = 0; s < outputs; ++s) {
       
       // Binary manipulation:
-      val |= (readings[s] < i) << s;         // this line can be translated to:
-      // uint8_t current = readings[s] < i;  // Comparison will in c/c++ return 1 for true and 0 for false.
-      // current = current << s;             // left shift the compared value s times. As s is our sensor number, this means moving the compared value to its correct position in the byte (move it s steps to the left).
-      // val = val | current;                // Binary or the two values together.
+      val |= (readings[s] < i) << outputPorts[s];   // this line can be translated to:
+      // uint8_t current = readings[s] < i;         // Comparison will in c/c++ return 1 for true and 0 for false.
+      // current = current << outputPorts[s];       // left shift the compared value output port number times. As s is our sensor number, this means moving the compared value to its correct position in the byte (move it output port number steps to the left).
+      // val = val | current;                       // Binary or the two values together.
       
     }
-    // After this operation, the uint8_t now holds
-    // port num: 7 6 5 4 3 2 1 0
-    // value:    x x x x x x x x
-    // where 'x' represents the result of the comparison for that particular sensor
+    // After this operation, the uint8_t now holds values (0 or 1) at the positions indicated by outputPorts.
+    // To make sure this is in the correct position, and that we do not alter the other IO ports, we binary and this with the output mask and binary or the result with the values that were there before
+    val = (val & outputMask) | prevVals;
     
     // To send the entire data in one operation, we call:
     portExp.writeGPIO(val);
   }
   
   // Make sure all lights are turned off while we do other things
-  portExp.writeGPIO(0);
+  portExp.writeGPIO(prevVals);
 }
 
 
@@ -118,13 +135,8 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Hello. Initializing zumo and port expander");
   
-  // Initialize sensor readings to 0
-  for (int i = 0; i < 8; ++i) {
-    readings[i] = 0;
-  }
-  
-  // Start communication with port expander
-  portExpander_beginAnalog(addr, mcp);
+  // Start communication with port expander and init the 6 output ports used for analog write
+  outMask = portExpander_beginAnalog(addr, outPorts, 6, mcp);
 
   // Initialize sensor array
   sensors.init();
@@ -144,6 +156,6 @@ void loop() {
     readings[i] /= 20;
   }
   
-  // Do one cycle of analog write
-  portExpander_analogWrite(readings, mcp);
+  // Do one cycle of analog write on the given ports
+  portExpander_analogWrite(readings, outPorts, 6, outMask, mcp);
 }
