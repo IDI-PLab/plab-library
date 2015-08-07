@@ -1,3 +1,16 @@
+/*
+ * BasicHttpFileServer
+ * 
+ * A simple example that show how use PLabFileServer.
+ * The server serves files from an SD card connected to the ethernet shield.
+ * All request/reply data is also fed to Serial.
+ * 
+ * Circuit:
+ *   1 x Arduino Ethernet shield
+ * 
+ * Created by Inge Edward Halsaunet, 2015
+ * Released into the public domain
+ */
 #include <SPI.h>
 #include <SD.h>
 #include <Ethernet.h>

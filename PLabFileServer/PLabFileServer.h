@@ -1,3 +1,12 @@
+/*
+* PLabFileServer
+* Version 0.1, August, 2015
+* This library for the Arduino Uno simplify use of the Ethernet library
+* as a http file server.
+*
+* Created by Inge Edward Halsaunet, 2015
+* Released into the public domain
+*/
 #ifndef PLAB_FILE_SERVER_H
 #define PLAB_FILE_SERVER_H
 
@@ -51,43 +60,45 @@ private:
 		METH_NOT_SUPPORTED, METH_GET, METH_HEAD
 	};		// Supported request methods
 
-
+	// If the filter is responsible for writing the response
 	bool userControlledResponse = false;
 
 
+	// cPrint, cPrintln, cWrite : wrappers that simplify debug printing.
 	void cPrint(const char *str, EthernetClient &c);
 	void cPrintln(const char *str, EthernetClient &c);
 	void cWrite(char chr, EthernetClient &c);
 
-	RequestMethod_t acceptRequestMethod();
-	bool acceptRequestURI();
-	bool acceptHTTPVersion();
-	bool acceptHeader(bool complete);
+	// called when that part of a request has completed
+	RequestMethod_t acceptRequestMethod();	// Accepted: GET / HEAD , not accepted POST etc.
+	bool acceptRequestURI();	// The complete uri has been received, including query
+	bool acceptHTTPVersion();	// Check if HTTP version is compatible
+	bool acceptHeader(bool complete);	// Actually only one line of the header. complete is if the line is completed.
 
-	File sdFile;
+	File sdFile;	// While an open request exists, this holds the open sd file.
 
-	char mimeSufBuf[PLAB_MIME_SUFFIX_BUF_MAX];
-	int internalMIMEIndex = -1;
+	char mimeSufBuf[PLAB_MIME_SUFFIX_BUF_MAX];	// MIME type is determined by suffix. This is used when reading this suffix
+	int internalMIMEIndex = -1;	// Where in progmem table MIME type is stored
 
-	char bigBuf[PLAB_BIG_BUFFER_SIZE];
+	char bigBuf[PLAB_BIG_BUFFER_SIZE];	// Buffer used for both input and outpur. Used extensively to read from progmem
 
-	bool sdInitialized = false;
+	bool sdInitialized = false;	// If SD initialization succeeded
 
-	RequestState_t reqStateTransition(RequestState_t oldState, char recvd, int &recCount, RequestMethod_t &method);
+	RequestState_t reqStateTransition(RequestState_t oldState, char recvd, int &recCount, RequestMethod_t &method);	// While parsin request, this is the state macine "engine"
 
-	int internalMIMEType(const char *suffix);
+	int internalMIMEType(const char *suffix);	// Query where a suffix is located in the MIME type progmem table. Returns -1 if not found
 
-	void printDefaultError(int errorCode, EthernetClient &client);
+	void printDefaultError(int errorCode, EthernetClient &client);	// Print the default error html to the client. Error code and message string is found from erorCode
 public:
-	Stream *out = NULL;
-	PLabServerFilter *filter = NULL;
+	Stream *out = NULL;		// PUBLIC -> User of class can change it him/herself
+	PLabServerFilter *filter = NULL;	// PUBLIC -> User of class can set filter (if wanted)
 
-	PLabFileServer() : EthernetServer(80) {}
-	PLabFileServer(int port) : EthernetServer(port) {}
+	PLabFileServer() : EthernetServer(80) {}	// Server defaults to port 80
+	PLabFileServer(int port) : EthernetServer(port) {}	// Custom port
 	~PLabFileServer() {}
 
-	void begin();
-	void update();
+	void begin();	// Init SD card, and calls EthernetServer::begin()
+	void update();	// Checks for new connections
 };
 
 #endif //ndef PLAB_FILE_SERVER_H

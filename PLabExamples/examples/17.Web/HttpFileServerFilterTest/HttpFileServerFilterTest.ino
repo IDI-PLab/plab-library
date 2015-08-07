@@ -1,3 +1,15 @@
+/*
+ * HttpFileServerFilterTest
+ * 
+ * A simple example that show how use PLabFileServer with a filter to change response text.
+ * A string is inserted every time "test" is read.
+ * 
+ * Circuit:
+ *   1 x Arduino Ethernet shield
+ * 
+ * Created by Inge Edward Halsaunet, 2015
+ * Released into the public domain
+ */
 #include <SPI.h>
 #include <SD.h>
 #include <Ethernet.h>

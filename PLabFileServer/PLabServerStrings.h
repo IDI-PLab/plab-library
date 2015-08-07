@@ -1,4 +1,13 @@
 /*
+* PLabServerStrings
+* Version 0.1, August, 2015
+* Internal part of PLabFileServer. Holds all strings stored in PROGMEM.
+*
+* Created by Inge Edward Halsaunet, 2015
+* Released into the public domain
+*/
+
+/*
 Definitions of strings:
  Definitions of request fields
  Definitions of MIME types.
