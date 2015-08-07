@@ -27,7 +27,6 @@ public:
     // return false;  // If you want to reply with 400 Bad Request
     return true;
   }
-  //virtual void acceptRequestBody(char character) {} // Not yet relevant, no requests should have body
   void redirectReplyFile(File &f) {
     Serial.println("Redirect file");
     // If for some reason you wish to change the file that is being sent in the reply, change file f here
