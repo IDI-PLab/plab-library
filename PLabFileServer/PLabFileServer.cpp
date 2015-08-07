@@ -32,7 +32,7 @@ int PLabFileServer::internalMIMEType(const char *suffix) {
 	if (suffix == NULL)
 		return -1;
 	// Find index, unordered search
-	for (int i = 0; i < (sizeof(plabMIMESuffixTable) / sizeof(char*)); ++i) {
+	for (unsigned int i = 0; i < (sizeof(plabMIMESuffixTable) / sizeof(char*)); ++i) {
 		// Get the mime suffix from prgram memory
 		strcpy_P(mimeSufBuf, (char*)(pgm_read_word(&(plabMIMESuffixTable[i]))));
 		if (0 == strcasecmp(mimeSufBuf, suffix))
@@ -80,15 +80,20 @@ bool PLabFileServer::acceptRequestURI() {
 	}
 
 	char *uri = bigBuf;
+	userControlledResponse = false;
 
-	// 1 Send URI to user, if user wish to check it
-	// 2 check for URI type
-	// 3 clean URI
-	/*
-	if (uri[0] == '/'){
-		uri = &(uri[1]);
+	// 1 Send URI to user, if user wish to check/alter it
+	if (filter) {
+		userControlledResponse = filter->filterRequestUri(bigBuf);
+		if (userControlledResponse)
+			return true;
 	}
-	*/
+	// 2 check for URI type
+	// Skipped.
+	// 3 clean URI (If it contains a query, dispose of it)
+	char *queryStart = strchr(uri, '?');
+	if (queryStart)
+		*queryStart = '\0';
 #ifdef PLAB_DEBUG
 	if (out)
 		out->println(uri);
@@ -131,7 +136,11 @@ bool PLabFileServer::acceptHTTPVersion() {
 	return !(bigBuf[0] != 'H' || bigBuf[1] != 'T' || bigBuf[2] != 'T' || bigBuf[3] != 'P' || bigBuf[4] != '/'
 		|| bigBuf[5] != '1' || bigBuf[6] != '.'); // ONLY major version 1 accepted
 }
-bool PLabFileServer::acceptHeader(bool complete) { return true; }	// Not yet implemented anything.
+bool PLabFileServer::acceptHeader(bool complete) {
+	if (filter)
+		return filter->filterRequestHeader(bigBuf, complete);
+	return true;
+}
 
 /*
 REQ_START,
@@ -293,6 +302,10 @@ void PLabFileServer::update() {
 			out->println();
 		}
 
+		if (filter) {
+			filter->start();
+		}
+
 		// We should now start parsing our request
 		RequestState_t state = REQ_START;
 		RequestMethod_t method = METH_NOT_SUPPORTED;
@@ -321,38 +334,63 @@ void PLabFileServer::update() {
 				// GET and HEAD discard request body in this server
 				// Currently this (HEAD and GET) covers every possibility.
 				if (method == METH_HEAD || method == METH_GET) {
-					// The exact same header
-					strcpy_P(bigBuf, plabHeaderHttp);
-					cPrint(bigBuf, client);
-					strcpy_P(bigBuf, plab200OK);
-					cPrintln(bigBuf, client);
-					if (internalMIMEIndex >= 0) {
-						strcpy_P(bigBuf, plabContentType);
-						cPrint(bigBuf, client);
-						strcpy_P(bigBuf, (char*)pgm_read_word(&(plabMIMETypeTable[internalMIMEIndex])));
-						cPrintln(bigBuf, client);
+					if (userControlledResponse) {
+						if (filter)
+							filter->writeResponse(client);
 					}
-					strcpy_P(bigBuf, plabConnectionClose);
-					cPrintln(bigBuf, client);
-					// TODO Additional user defined header fields
-					cPrintln("", client);	// HEADER stop
-					if (method == METH_GET) {
-#ifdef PLAB_DEBUG
-						if (out)
-							out->println("GET response");
-#endif // PLAB_DEBUG
-						// ONLY get has message body
-						// TODO User defined body write
-						if (sdFile) {
-							while (sdFile.available()) {
-								cWrite(sdFile.read(), client);
-							}
-							sdFile.close();
+					else {
+						// The exact same header
+						strcpy_P(bigBuf, plabHeaderHttp);
+						if (filter)
+							filter->filterResponseHeader(bigBuf, client);
+						cPrint(bigBuf, client);
+						strcpy_P(bigBuf, plab200OK);
+						if (filter)
+							filter->filterResponseHeader(bigBuf, client);
+						cPrintln(bigBuf, client);
+						if (internalMIMEIndex >= 0) {
+							strcpy_P(bigBuf, plabContentType);
+							if (filter)
+								filter->filterResponseHeader(bigBuf, client);
+							cPrint(bigBuf, client);
+							strcpy_P(bigBuf, (char*)pgm_read_word(&(plabMIMETypeTable[internalMIMEIndex])));
+							if (filter)
+								filter->filterResponseHeader(bigBuf, client);
+							cPrintln(bigBuf, client);
 						}
+						strcpy_P(bigBuf, plabConnectionClose);
+						if (filter)
+							filter->filterResponseHeader(bigBuf, client);
+						cPrintln(bigBuf, client);
+						// TODO Additional user defined header fields
+						cPrintln("", client);	// HEADER stop
+						if (method == METH_GET) {
+							// Rediricting file location
+							if (filter)
+								filter->redirectReplyFile(sdFile);
 #ifdef PLAB_DEBUG
-						else if (out)
-							out->println("File not open!");
+							if (out)
+								out->println("GET response");
 #endif // PLAB_DEBUG
+							// ONLY get has message body
+							// TODO User defined body write
+							if (sdFile) {
+								while (sdFile.available()) {
+									char c = sdFile.read();
+									if (filter) {
+										if (filter->filterResponse(c, client))
+											cWrite(c, client);
+									}
+									else
+										cWrite(c, client);
+								}
+								sdFile.close();
+							}
+#ifdef PLAB_DEBUG
+							else if (out)
+								out->println("File not open!");
+#endif // PLAB_DEBUG
+						}
 					}
 				}
 				break;
@@ -398,6 +436,8 @@ void PLabFileServer::update() {
 				client.flush();
 			}
 		}
+		if (filter)
+			filter->end();
 	}
 }
 

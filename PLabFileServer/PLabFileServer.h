@@ -11,9 +11,22 @@
 
 #ifndef PLAB_BIG_BUFFER_SIZE
 // Big buffer, all incomming and a lot of outgoing is being buffered here.
-// Recommended size is over 100 (to avoid too long URI). MUST be AT LEAST 70 to hold error code and neccessary html during error generation.
-#define PLAB_BIG_BUFFER_SIZE 128
+// Recommended size is over 80 (to avoid too long URI). MUST be AT LEAST 70 to hold error code and neccessary html during error generation.
+#define PLAB_BIG_BUFFER_SIZE 80
 #endif // ndef PLAB_BIG_BUFFER_SIZE
+
+class PLabServerFilter {
+public:
+	virtual void start() {}
+	virtual bool filterRequestUri(char *uri) { return false; }
+	virtual bool filterRequestHeader(char *content, bool complete) { return true; }
+	//virtual void acceptRequestBody(char character) {}	// Not yet relevant, no requests should have body
+	virtual void redirectReplyFile(File &f) {}
+	virtual void writeResponse(EthernetClient &client) {}
+	virtual void filterResponseHeader(char *response, EthernetClient &client) {}
+	virtual bool filterResponse(char character, EthernetClient &client) { return true; }
+	virtual void end() {}
+};
 
 class PLabFileServer : private EthernetServer {
 private:
@@ -37,6 +50,9 @@ private:
 	enum RequestMethod_t {
 		METH_NOT_SUPPORTED, METH_GET, METH_HEAD
 	};		// Supported request methods
+
+
+	bool userControlledResponse = false;
 
 
 	void cPrint(const char *str, EthernetClient &c);
@@ -64,6 +80,7 @@ private:
 	void printDefaultError(int errorCode, EthernetClient &client);
 public:
 	Stream *out = NULL;
+	PLabServerFilter *filter = NULL;
 
 	PLabFileServer() : EthernetServer(80) {}
 	PLabFileServer(int port) : EthernetServer(port) {}
