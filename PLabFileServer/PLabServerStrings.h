@@ -15,20 +15,16 @@ Definitions of strings:
 
 // 4 characters + '\0'
 #define PLAB_MIME_SUFFIX_BUF_MAX 5
-// "application/javascript" + '\0'
-#define PLAB_MIME_TYPE_BUF_MAX 23
-
-/*
-const char plabMIMESuf[] PROGMEM = "";
-const char plabMIMEType[] PROGMEM = "";
-*/
 
 // Basic web mime
 const char plabHtmMIMESuf[] PROGMEM  = "htm";
 const char plabHtmMIMEType[] PROGMEM = "text/html";
 
 const char plabHtmlMIMESuf[] PROGMEM = "html";
+#endif //ndef PLAB_NO_MIMES
+// We will need this mime type in error codes
 const char plabHtmlMIMEType[] PROGMEM = "text/html";
+#ifndef PLAB_NO_MIMES
 
 const char plabXmlMIMESuf[] PROGMEM = "xml";
 const char plabXmlMIMEType[] PROGMEM = "application/xml";
@@ -109,16 +105,21 @@ const char* const plabMIMETypeTable[] PROGMEM = {
 const char plabRequest[] PROGMEM = "REQUEST:";
 const char plabResponse[] PROGMEM = "RESPONSE:";
 // Response header strings
-const char plabHttp200OK[] PROGMEM = "HTTP/1.1 200 OK";
+const char plabHeaderHttp[] PROGMEM = "HTTP/1.1 ";
+const char plab200OK[] PROGMEM = "200 OK";
 const char plabContentType[] PROGMEM = "Content-Type: ";
 const char plabConnectionClose[] PROGMEM = "Connection: close";
 // Error code strings. Note: all have three digits, a space and message
 const char plab400BadRequest[] PROGMEM = "400 Bad Request";
 const char plab404NotFound[] PROGMEM = "404 Not Found";
-const char plab405MethodNotAlloweb[] PROGMEM = "405 MethodNotAllowed";
+const char plab405MethodNotAllowed[] PROGMEM = "405 Method Not Allowed";
 const char plab414RequestUriTooLarge[] PROGMEM = "414 Request-URI Too Large";
 const char plab500InternalServerError[] PROGMEM = "500 Internal Server Error";
 const char plab501NotImplemented[] PROGMEM = "501 Not Implemented";
 const char plab505HttpVersionNotSupported[] PROGMEM = "505 HTTP Version not supported";
+// Standard error html, excluding code and reason
+const char plabHtml1[] PROGMEM = "<!DOCTYPE html>\r\n<html><head><title>";
+const char plabHtml2[] PROGMEM = "</title></head><body><h1>";
+const char plabHtml3[] PROGMEM = "</h1></body></html>";
 
 #endif // ndef PLAB_MIME_TYPES_H

@@ -10,6 +10,8 @@
 #include <SD.h>
 
 #ifndef PLAB_BIG_BUFFER_SIZE
+// Big buffer, all incomming and a lot of outgoing is being buffered here.
+// Recommended size is over 100 (to avoid too long URI). MUST be AT LEAST 70 to hold error code and neccessary html during error generation.
 #define PLAB_BIG_BUFFER_SIZE 128
 #endif // ndef PLAB_BIG_BUFFER_SIZE
 
@@ -49,7 +51,7 @@ private:
 	File sdFile;
 
 	char mimeSufBuf[PLAB_MIME_SUFFIX_BUF_MAX];
-	char mimeTypeBuf[PLAB_MIME_TYPE_BUF_MAX];
+	int internalMIMEIndex = -1;
 
 	char bigBuf[PLAB_BIG_BUFFER_SIZE];
 
@@ -58,10 +60,8 @@ private:
 	RequestState_t reqStateTransition(RequestState_t oldState, char recvd, int &recCount, RequestMethod_t &method);
 
 	int internalMIMEType(const char *suffix);
-	int userMIMEType(const char *suffix);
-	void bufferMIMEType(const char *suffix);
 
-	void printDefaultError(const char* code, const char *reasonPhrase, EthernetClient &client);
+	void printDefaultError(int errorCode, EthernetClient &client);
 public:
 	Stream *out = NULL;
 
@@ -71,8 +71,6 @@ public:
 
 	void begin();
 	void update();
-
-	bool addMIMEType(const char *suffix, const char *mediaType);
 };
 
 #endif //ndef PLAB_FILE_SERVER_H

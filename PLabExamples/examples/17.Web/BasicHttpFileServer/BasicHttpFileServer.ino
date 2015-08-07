@@ -11,17 +11,20 @@ PLabFileServer server;  // Defaults to port 80
 
 void setup() {
   Serial.begin(9600);
-//  Serial.println("Setting up a basic file server");
+  Serial.println("Setting up a basic file server");
   // Giving server debug
   server.out = &Serial;
   
   // Obtaining IP address from DHCP
-  Ethernet.begin(mac);
-//  Serial.print("Server IP: ");
+  while (Ethernet.begin(mac) == 0) {
+    Serial.println("A problem occured while aquire IP");
+    delay(10000);
+  }
+  Serial.print("Server IP: ");
   Serial.println(Ethernet.localIP());
 
   // Starting server
-//  Serial.println("Starting server");
+  Serial.println("Starting server");
   server.begin();
   Serial.println("Started");
 }

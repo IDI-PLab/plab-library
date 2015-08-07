@@ -29,34 +29,16 @@ void PLabFileServer::cWrite(char chr, EthernetClient &c) {
 }
 
 int PLabFileServer::internalMIMEType(const char *suffix) {
+	if (suffix == NULL)
+		return -1;
 	// Find index, unordered search
 	for (int i = 0; i < (sizeof(plabMIMESuffixTable) / sizeof(char*)); ++i) {
 		// Get the mime suffix from prgram memory
 		strcpy_P(mimeSufBuf, (char*)(pgm_read_word(&(plabMIMESuffixTable[i]))));
-		if (strcasecmp(mimeSufBuf, suffix))
+		if (0 == strcasecmp(mimeSufBuf, suffix))
 			return i;
 	}
 	return -1;
-}
-int PLabFileServer::userMIMEType(const char *suffix) {
-	// TODO Treat user defined MIME type
-	return -1;
-}
- void PLabFileServer::bufferMIMEType(const char *suffix) {
-	 // ensure MIME type defaults to unknown
-	 mimeTypeBuf[0] = '\0';
-
-	int index = userMIMEType(suffix);
-	if (index >= 0) {
-		// TODO Treat user defined MIME type
-	}
-	else {
-		index = internalMIMEType(suffix);
-		if (index >= 0) {
-			// Copy type from program memory
-			strcpy_P(mimeTypeBuf, (char*)(pgm_read_word(&(plabMIMETypeTable[index]))));
-		}
-	}
 }
 
 
@@ -102,9 +84,11 @@ bool PLabFileServer::acceptRequestURI() {
 	// 1 Send URI to user, if user wish to check it
 	// 2 check for URI type
 	// 3 clean URI
+	/*
 	if (uri[0] == '/'){
 		uri = &(uri[1]);
 	}
+	*/
 #ifdef PLAB_DEBUG
 	if (out)
 		out->println(uri);
@@ -117,7 +101,7 @@ bool PLabFileServer::acceptRequestURI() {
 		if (out)
 			out->println(suf);
 #endif // PLAB_DEBUG
-		bufferMIMEType(suf);
+		internalMIMEIndex = internalMIMEType(suf);
 		// 6 Open the file, and let it wait until we have a complete request
 		sdFile = SD.open(bigBuf, FILE_READ);
 		return true;
@@ -338,13 +322,15 @@ void PLabFileServer::update() {
 				// Currently this (HEAD and GET) covers every possibility.
 				if (method == METH_HEAD || method == METH_GET) {
 					// The exact same header
-					strcpy_P(bigBuf, plabHttp200OK);
-					// TODO CONTAIN THIS IN PROGMEM, eats up memory
+					strcpy_P(bigBuf, plabHeaderHttp);
+					cPrint(bigBuf, client);
+					strcpy_P(bigBuf, plab200OK);
 					cPrintln(bigBuf, client);
-					if (mimeTypeBuf[0] != '\0') {
+					if (internalMIMEIndex >= 0) {
 						strcpy_P(bigBuf, plabContentType);
 						cPrint(bigBuf, client);
-						cPrintln(mimeTypeBuf, client);
+						strcpy_P(bigBuf, (char*)pgm_read_word(&(plabMIMETypeTable[internalMIMEIndex])));
+						cPrintln(bigBuf, client);
 					}
 					strcpy_P(bigBuf, plabConnectionClose);
 					cPrintln(bigBuf, client);
@@ -373,25 +359,25 @@ void PLabFileServer::update() {
 
 				// TODO Better error treatment
 			case BAD_REQ_400:
-				printDefaultError("400", "Bad Request", client);
+				printDefaultError(400, client);
 				break;
 			case NOT_FOUND_404:
-				printDefaultError("404", "Not Found", client);
+				printDefaultError(404, client);
 				break;
 			case METHOD_NOT_ALLOWED_405:
-				printDefaultError("405", "Method Not Allowed", client);
+				printDefaultError(405, client);
 				break;
 			case REQUEST_URI_TOO_LONG_414:
-				printDefaultError("414", "Request-URI Too Large", client);
+				printDefaultError(414, client);
 				break;
 			case INTERNAL_SERVER_ERROR_500:
-				printDefaultError("500", "Internal Server Error", client);
+				printDefaultError(500, client);
 				break;
 			case NOT_IMPLEMENTED_501:
-				printDefaultError("501", "Not Implemented", client);
+				printDefaultError(501, client);
 				break;
 			case HTTP_VERSION_NOT_SUPPORTED_505:
-				printDefaultError("505", "HTTP Version not supported", client);
+				printDefaultError(505, client);
 				break;
 
 			default:
@@ -415,33 +401,63 @@ void PLabFileServer::update() {
 	}
 }
 
-void PLabFileServer::printDefaultError(const char* code, const char *reasonPhrase, EthernetClient &client) {
+void PLabFileServer::printDefaultError(int errorCode, EthernetClient &client) {
 	if (out) {
 		out->println();
 		strcpy_P(bigBuf, plabResponse);
 		out->println(bigBuf);
 		out->println();
 	}
-	strcpy_P(bigBuf, plab400BadRequest);
-	// Use layout of message, divide manually
-	bigBuf[3] = '\0';
-	printDefaultError(bigBuf, &(bigBuf[4]), client);
-	cPrint("HTTP/1.1 ", client);
-	cPrint(code, client);
-	cPrint(" ", client);
-	cPrintln(reasonPhrase, client);
-	//cPrintln("Content-Type: text/html", client);
-	cPrintln("Connection: close", client);
-	cPrintln("", client);
-	/*cPrint("<html><head><title>", client);
-	cPrint(code, client);
-	cPrint(" - ", client);
-	cPrint(reasonPhrase, client);
-	cPrint("</title></head><body><h1>", client);
-	cPrint(code, client);
-	cPrint(": ", client);
-	cPrint(reasonPhrase, client);
-	cPrintln("</h1></body></html>", client);*/
-}
+	// Load error code and message
+	switch (errorCode) {
+	case 400:
+		strcpy_P(bigBuf, plab400BadRequest);
+		break;
+	case 404:
+		strcpy_P(bigBuf, plab404NotFound);
+		break;
+	case 405:
+		strcpy_P(bigBuf, plab405MethodNotAllowed);
+		break;
+	case 414:
+		strcpy_P(bigBuf, plab414RequestUriTooLarge);
+		break;
+	case 501:
+		strcpy_P(bigBuf, plab501NotImplemented);
+		break;
+	case 505:
+		strcpy_P(bigBuf, plab505HttpVersionNotSupported);
+		break;
+	case 500:
+		// Fallthrough
+	default:
+		strcpy_P(bigBuf, plab500InternalServerError);
+		break;
+	}
+	// Find end of string. We know the first character is not empty
+	char *htmlString = bigBuf;
+	// Postfix increment: point to first element AFTER \0 character
+	while (*(htmlString++) != '\0');
 
-bool PLabFileServer::addMIMEType(const char *suffix, const char *mediaType) { return false; }
+	// Header
+	strcpy_P(htmlString, plabHeaderHttp);
+	cPrint(htmlString, client);
+	cPrintln(bigBuf, client);
+	strcpy_P(htmlString, plabContentType);
+	cPrint(htmlString, client);
+	strcpy_P(htmlString, plabHtmlMIMEType);
+	cPrintln(htmlString, client);
+	strcpy_P(htmlString, plabConnectionClose);
+	cPrintln(htmlString, client);
+	cPrintln("", client);
+
+	// html
+	strcpy_P(htmlString, plabHtml1);
+	cPrintln(htmlString, client);
+	cPrintln(bigBuf, client);
+	strcpy_P(htmlString, plabHtml2);
+	cPrintln(htmlString, client);
+	cPrintln(bigBuf, client);
+	strcpy_P(htmlString, plabHtml3);
+	cPrintln(htmlString, client);
+}
