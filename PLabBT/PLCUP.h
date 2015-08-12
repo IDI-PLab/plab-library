@@ -49,6 +49,8 @@ private:
 	void sendBlobEndToken(Stream &to);
 	void sendError(Stream &to);
 public:
+	~PLCUP() { delete[] _codeLoc; }
+
 	void setCodeURI(const char *loc);
 	void setCodeSourcePointer(AbstractPLabCodeSource *source);
 
