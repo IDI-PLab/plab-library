@@ -41,6 +41,11 @@ int PLabBTSerial::available()
 	while (SoftwareSerial::available() > 0)
 	{
 		_buffer[_bLoc] = SoftwareSerial::read();
+#ifdef PLAB_DEBUG
+		Serial.print("r: ");
+		Serial.write(_buffer[_bLoc]);
+		Serial.print(" ");
+#endif	// PLAB_DEBUG
 		if (_buffer[_bLoc] == '\r')
 		{
 			// Should just skip 
@@ -49,19 +54,47 @@ int PLabBTSerial::available()
 		{
 			// New line found. End string and return available data count
 			_buffer[_bLoc] = '\0';
-			_available = (_bLoc - _retLoc) + 1;
-			return _available;
+			if (_bLoc > 0 && !isPLCUPWorking()) {
+				_available = (_bLoc - _retLoc) + 1;
+			}
 		}
 		else
 		{
-			_bLoc++;
+			// Carriage return and linefeed should not be sent to PLCUP processing
+			if (processPLCUPCharacter(_buffer[_bLoc])) {
+				// Dispose of any incomming characters
+				while (SoftwareSerial::available() > 0) {
+#ifdef PLAB_DEBUG
+					Serial.print("d: ");
+					Serial.write(SoftwareSerial::read());
+					Serial.print(" ");
+#else
+					SoftwareSerial::read();
+#endif	// PLAB_DEBUG
+				}
+				_bLoc = 0;
+				replyPLCUP(*this);
+				// Dispose of any incomming characters, no answer should have reached the unit yet
+				while (SoftwareSerial::available() > 0) {
+#ifdef PLAB_DEBUG
+					Serial.print("d: ");
+					Serial.write(SoftwareSerial::read());
+					Serial.print(" ");
+#else
+					SoftwareSerial::read();
+#endif	// PLAB_DEBUG
+				}
+			}
+			else {
+				_bLoc++;
+			}
 		}
 		while (_bLoc >= _bufferSize)
 		{
 			_bLoc--;
 		}
 	}
-	return 0;
+	return _available;
 }
 
 // Constructor

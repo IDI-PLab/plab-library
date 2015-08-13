@@ -9,14 +9,21 @@
  * released into the public domain
  */
 
+//#define PLAB_DEBUG
+
 
 #ifndef PLAB_BT_SERIAL_H
 #define PLAB_BT_SERIAL_H
 
 #include <SoftwareSerial.h>
 #include <inttypes.h>
+#include "PLCUP.h"
 
-class PLabBTSerial : public SoftwareSerial
+#ifdef PLAB_DEBUG
+#include "Arduino.h"
+#endif	// PLAB_DEBUG
+
+class PLabBTSerial : public SoftwareSerial, private PLCUP
 {
 private:
         // Size of buffer.
@@ -41,6 +48,20 @@ public:
 	// given the buffer is large enough. Given buffer size identified as
 	// bufferSize
 	virtual void read(char* buffer, int bufferSize);
+
+#ifdef PLAB_DEBUG
+	size_t write(uint8_t ch) {
+		Serial.print("w:");
+		Serial.write(ch);
+		Serial.print(" ");
+		return SoftwareSerial::write(ch);
+	}
+#endif	// PLAB_DEBUG
+
+	// Those method inherited from PLCUP that should be made public
+	using PLCUP::setPLCUPTimeout;
+	using PLCUP::setPLCUPCodeURI;
+	using PLCUP::setPLCUPCodeSourcePointer;
 	
 };
 

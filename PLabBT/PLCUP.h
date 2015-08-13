@@ -15,8 +15,8 @@
 
 class AbstractPLabCodeSource {
 public:
-	virtual int available() = delete;
-	virtual char read() = delete;
+	virtual int available() = 0;
+	virtual char read() = 0;
 };
 
 class PLCUP {
@@ -31,16 +31,19 @@ private:
 	char *_codeLoc = NULL;
 	AbstractPLabCodeSource *_codeSource = NULL;
 
-	const static char PLCUP_s[] = "PLCUP";
-	const static char VERSION_s[] = "/0.1";
-	const static char CODE_s[] = "COD";
-	const static char URI_s[] = "URI";
-	const static char NONE_s[] = "NON";
-	const static char CODE_URI_s[] = "C/U";
-	const static char ERROR_s[] = "ERR";
-	const static char BEGIN_s[] = "BEG";
-	const static char END_s[] = "END";
-	const static char GET_s[] = " G ";
+	const static char PLCUP_s[];
+	const static char VERSION_s[];
+	const static char CODE_s[];
+	const static char URI_s[];
+	const static char NONE_s[];
+	const static char CODE_URI_s[];
+	const static char ERROR_s[];
+	const static char BEGIN_s[];
+	const static char END_s[];
+	const static char GET_s[];
+
+	unsigned long timeout = 60000; // Defaults to 60 seconds
+	unsigned long startTime;
 
 	void sendCapabilities(Stream &to);
 	void sendCode(Stream &to);
@@ -51,11 +54,14 @@ private:
 public:
 	~PLCUP() { delete[] _codeLoc; }
 
-	void setCodeURI(const char *loc);
-	void setCodeSourcePointer(AbstractPLabCodeSource *source);
+	void setPLCUPCodeURI(const char *loc);
+	void setPLCUPCodeSourcePointer(AbstractPLabCodeSource *source);
 
-	bool processCharacter(char c);	// true if PLCUP should take control of out stream
-	void reply(Stream &to);
+	bool processPLCUPCharacter(char c);	// true if PLCUP should take control of out stream
+	void replyPLCUP(Stream &to);
+
+	bool isPLCUPWorking();
+	void setPLCUPTimeout(unsigned int milliseconds) { timeout = milliseconds; }
 };
 
 #endif
