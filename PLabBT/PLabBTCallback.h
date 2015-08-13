@@ -62,6 +62,11 @@ public:
 	using PLabBTSerial::write;
 	using PLabBTSerial::print;
 	using PLabBTSerial::println;
+
+	// PLCUP support
+	using PLabBTSerial::setPLCUPTimeout;
+	using PLabBTSerial::setPLCUPCodeURI;
+	using PLabBTSerial::setPLCUPCodeSourcePointer;
 };
 
 #endif
