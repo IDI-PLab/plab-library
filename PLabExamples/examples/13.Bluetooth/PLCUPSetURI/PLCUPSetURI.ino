@@ -13,7 +13,7 @@ https://www.ntnu.no/wiki/pages/viewpage.action?pageId=78024129
 #define txPin 3   // Connect this to pin TXD on the BT unit.
 
 
-PLabBTSerial btSerial(txPin, rxPin);
+PLabBTSerial btSerial(txPin, rxPin);  // Serial connection to remote device
 
 void setup()
 {

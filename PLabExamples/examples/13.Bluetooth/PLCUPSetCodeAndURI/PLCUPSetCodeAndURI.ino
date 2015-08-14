@@ -39,12 +39,19 @@ const char code[] = "private PLabBridge plabBridge;"
   "} else {"
     "background(#333333);"
   "}"
-"}";
+"}"; // Notice the semicolon is only here, after the entire code.
 
+
+// CodeSource is a class that feed PLabBT*** with Processing code that should be delivered to the app.
+// It inherits from AbstracPLabCodeSource, an abstract base class that provides the methods that are needed to feed code.
 class CodeSource : public AbstractPLabCodeSource {
+// private: This area is not visible outside the class.
 private:
   int pos = 0;
+
+// public: This area is accessible for everyone.
 public:
+  // Overriding AbstractPLabCodeSource available method
   int available() {
     if (code[pos] == '\0') {
       // Rewind, so we can read the sketch multiple times
@@ -53,20 +60,23 @@ public:
     }
     return 1;
   }
+
+  // Overriding AbstractPLabCodeSource read method
   char read() {
     return code[pos++];
   }
 };
 
 
-PLabBTSerial btSerial(txPin, rxPin);
-CodeSource cSrc;  // It is IMPORTANT to set the code source to be accessible global. It will not be copied, and thus the space it occupy could be used for other variables.
+PLabBTSerial btSerial(txPin, rxPin);  // Serial connection to remote device
+CodeSource cSrc;    // Instance of CodeSource. THIS SHOULD BE A GLOBAL VARIABLE!
 
 void setup()
 {
     Serial.begin(9600);
 
     // If both code and URI is set, they would prefferably contain the same code. But they need not do.
+    // Passing a pointer to the CodeSource object. Passing a pointer is the reason the CodeSource object should be global.
     btSerial.setPLCUPCodeSourcePointer(&cSrc);
     btSerial.setPLCUPCodeURI("https://raw.githubusercontent.com/IDI-PLab/Examples/master/ArduinoMobileIntegrationExamples/SimpleButtonExample/Processing/SimpleButtonExample/SimpleButtonExample.pde");
     
