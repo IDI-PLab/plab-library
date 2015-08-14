@@ -1,0 +1,38 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+PLabServerFilter	KEYWORD1
+PLabFileServer	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+# PLabFileServer
+out	KEYWORD2
+filter	KEYWORD2
+begin	KEYWORD2
+update	KEYWORD2
+# PLabServerFilter
+start	KEYWORD2
+filterRequestUri	KEYWORD2
+filterRequestHeader	KEYWORD2
+redirectReplyFile	KEYWORD2
+writeResponse	KEYWORD2
+filterResponseHeader	KEYWORD2
+filterResponse	KEYWORD2
+end	KEYWORD2
+
+######################################
+# Constants (LITERAL1)
+#######################################
+
+# PLabBTLEController
+PLAB_NO_MIMES	LITERAL1
+PLAB_MIME_SUFFIX_BUF_MAX	LITERAL1
+PLAB_BIG_BUFFER_SIZE	LITERAL1

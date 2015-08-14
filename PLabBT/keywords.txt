@@ -1,0 +1,80 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+# PLabBTCallback
+PLabBTCallback			KEYWORD1
+# PLabBTLEController
+PLabBTLEDevice			KEYWORD1
+PLabBTLEController		KEYWORD1
+PLabBTLEController::Role	KEYWORD1
+# PLabBTSerial
+PLabBTSerial			KEYWORD1
+# PLCUP
+AbstractPLabCodeSource		KEYWORD1
+PLCUP				KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+# PLabBTCallback
+update				KEYWORD2
+registerCallback		KEYWORD2
+registerNoCommandCallback	KEYWORD2
+# PLabBTLEController
+getId				KEYWORD2
+getName				KEYWORD2
+getAddress			KEYWORD2
+isReady				KEYWORD2
+setName				KEYWORD2
+getRole				KEYWORD2
+setRole				KEYWORD2
+isPeripheral			KEYWORD2
+isCentral			KEYWORD2
+isDiscoveringNames		KEYWORD2
+setDiscoveringNames		KEYWORD2
+isWorkingImmediately		KEYWORD2
+setWorkingImmediately		KEYWORD2
+discoverDevices			KEYWORD2
+isDiscoveringDevices		KEYWORD2
+devices				KEYWORD2
+clearDiscoveredDevices		KEYWORD2
+connectDevice			KEYWORD2
+connectLastDevice		KEYWORD2
+connectionFailed		KEYWORD2
+isConnecting			KEYWORD2
+isConnected			KEYWORD2
+disconnect			KEYWORD2
+available			KEYWORD2
+reset				KEYWORD2
+factoryReset			KEYWORD2
+begin				KEYWORD2
+# PLabBTSerial
+read				KEYWORD2
+write				KEYWORD2
+print				KEYWORD2
+println				KEYWORD2
+# PLCUP
+setPLCUPCodeURI			KEYWORD2
+setPLCUPCodeSourcePointer	KEYWORD2
+processPLCUPCharacter		KEYWORD2
+replyPLCUP			KEYWORD2
+isPLCUPWorking			KEYWORD2
+setPLCUPTimeout			KEYWORD2
+
+######################################
+# Constants (LITERAL1)
+#######################################
+
+# PLabBTLEController
+PLAB_BTLE_START_PAUSE	LITERAL1
+PLAB_TIMEOUT		LITERAL1
+PLAB_LONG_TIMEOUT	LITERAL1
+PLAB_FACT_RESET_PAUSE	LITERAL1
+PLAB_BTLE_MAXDEVICE	LITERAL1
+PLAB_BTLE_BSIZE		LITERAL1
